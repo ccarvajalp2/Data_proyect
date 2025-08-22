@@ -301,6 +301,7 @@ if st.button("🚀 Generar informe"):
                 img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
                 html += f"<h2>{enumerador}. Tendencia acumulada</h2>"
                 html += f"<img src='data:image/png;base64,{img_base64}' width='600'><br>"
+                html += f"<p><b>Meta:</b> {meta}</p>"
                 enumerador += 1
                 plt.close()
 
@@ -397,6 +398,12 @@ if st.button("🚀 Generar informe"):
                 story.append(Paragraph("5. Ranking de oportunidades:", styles['Heading2']))
                 data_tabla = [agrupado3.columns.tolist()] + agrupado3.values.tolist()
                 tabla2 = Table(data_tabla)
+                tabla2.setStyle(TableStyle([
+                    ('BACKGROUND',(0,0),(-1,0),colors.darkblue),
+                    ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+                    ('ALIGN',(0,0),(-1,-1),'CENTER'),
+                    ('GRID',(0,0),(-1,-1),0.5,colors.black),
+                ]))
                 story.append(tabla2)
 
                 doc.build(story)
@@ -419,3 +426,4 @@ if st.button("🚀 Generar informe"):
         )
 
         st.success("✅ Reportes generados con éxito")
+
