@@ -265,151 +265,67 @@ if st.button("🚀 Generar informe"):
         plt.title("GAP")
         fig.savefig("grafico_gap.png", bbox_inches="tight")
 
-        if formato_html:
-            enumerador = 1
-            html = """
-            <html>
-            <head><meta charset="UTF-8"></head>
-            <body>
-            <img src="https://www.bancodealimentos.org.ar/wp-content/uploads/2022/10/LOGO-BBVA-coreblue_RGB_DDB-1536x533.png" width="100"><br><br>
-            <h1 style="color:#004481;">Reporte de Banca</h1>
-            """
-            html += f"<p>Actualización: {fecha}</p>"
-        
-            for titulo, img in [
-                ("Tendencia acumulada", "grafico_tendencia.png"),
-            ]:
-                html += f"<h2>{enumerador}. {titulo}</h2>"
-                html += f"<img src='{img}' width='600'><br>"
-                enumerador += 1
-            html += f"<p><b>Meta:</b> {meta}</p>"
-       
-            html += f"<h2>{enumerador}. Resultados agrupados:</h2>"
-            html += agrupado2.to_html(index=False)
-            enumerador += 1
-            html += f"<p>* Cifras en millones de pesos</p>"
-            for titulo, img in [
-                ("Cumplimiento", "grafico_cumplimiento.png"),
-                ("GAP", "grafico_gap.png"),
-            ]:
-                html += f"<h2>{enumerador}. {titulo}</h2>"
-                html += f"<img src='{img}' width='300'><br>"
-                enumerador += 1
+        from io import BytesIO
+        import base64
 
-            html += f"<h2>{enumerador}. Ranking de oportunidades:</h2>"
-            html += agrupado3.to_html(index=False)
-            enumerador += 1
-            html += f"<p>* Cifras en millones de pesos</p>"
-            html += "</body></html>"
+        from io import BytesIO
+        import zipfile
 
-            with open("Reporte_Banca_BBVA.html","w",encoding="utf-8") as f:
-                f.write(html)
+        zip_buffer = BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, "w") as zf:
 
 
-        if formato_pdf:
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib.pagesizes import letter
-            from reportlab.lib import colors
+            if formato_html:
+                enumerador = 1
+                html = """
+                <html>
+                <head><meta charset="UTF-8"></head>
+                <body>
+                <img src="https://www.bancodealimentos.org.ar/wp-content/uploads/2022/10/LOGO-BBVA-coreblue_RGB_DDB-1536x533.png" width="100"><br><br>
+                <h1 style="color:#004481;">Reporte de Banca</h1>
+                """
+                html += f"<p>Actualización: {fecha}</p>"
+                html += agrupado2.to_html(index=False)
+                html += "</body></html>"
 
-            doc = SimpleDocTemplate("Reporte_Banca_BBVA.pdf", pagesize=letter)
-            styles = getSampleStyleSheet()
-            story = []
-
-
-            import requests, os
-            logo_url = "https://www.bancodealimentos.org.ar/wp-content/uploads/2022/10/LOGO-BBVA-coreblue_RGB_DDB-1536x533.png"
-            logo_local = "logo.png"
-            if not os.path.exists(logo_local):
-                with open(logo_local, "wb") as f:
-                    f.write(requests.get(logo_url).content)
+                zf.writestr("Reporte_Banca_BBVA.html", html)
 
 
-            logo = Image(logo_local, width=100, height=35)
-            logo.hAlign = 'RIGHT'
-            story.append(logo)
-            story.append(Spacer(1, 1))
+            if formato_pdf:
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+                from reportlab.lib.styles import getSampleStyleSheet
+                from reportlab.lib.pagesizes import letter
+                from reportlab.lib import colors
 
+                pdf_buffer = BytesIO()
+                doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+                styles = getSampleStyleSheet()
+                story = []
 
-            story.append(Paragraph(f"Reporte de Banca", styles['Title']))
-            story.append(Spacer(1,12))
-            story.append(Paragraph(f"Actualización {fecha}"))
-
-            enumerador = 1
-
-
-            for titulo, img in [
-                ("Tendencia acumulada:", "grafico_tendencia.png"),
-            ]:
-                story.append(Paragraph(f"{enumerador}. {titulo}", styles['Heading2']))
-                story.append(Image(img, width=500, height=300))
+                story.append(Paragraph("Reporte de Banca", styles['Title']))
                 story.append(Spacer(1,12))
-                enumerador += 1
-            story.append(Paragraph(f"Meta: {meta}"))
-
-            data_tabla = [agrupado2.columns.tolist()] + agrupado2.values.tolist()
+                story.append(Paragraph(f"Actualización: {fecha}", styles['Normal']))
 
 
-            col_widths = [60]*len(agrupado2.columns)
-            if len(col_widths) > 1:
-                col_widths[1] = 110  
 
-            tabla = Table(data_tabla, colWidths=col_widths)
-            tabla.setStyle(TableStyle([
-                ('BACKGROUND',(0,0),(-1,0),colors.darkblue),
-                ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-                ('ALIGN',(0,0),(-1,-1),'CENTER'),
-                ('GRID',(0,0),(-1,-1),0.5,colors.black),
-                ('FONTSIZE', (0,0), (-1,-1), 8),
-                ('LEFTPADDING',(0,0),(-1,-1),2),
-                ('RIGHTPADDING',(0,0),(-1,-1),2),
-                ('TOPPADDING',(0,0),(-1,-1),2),
-                ('BOTTOMPADDING',(0,0),(-1,-1),2),
-            ]))
-            story.append(Paragraph("2. Resultados agrupados:", styles['Heading2']))
-            story.append(tabla)
-            story.append(Spacer(1,12))
-            enumerador += 1
-            story.append(Paragraph("*Cifras en millones de pesos"))
-            for titulo, img in [    
-                ("Indicador de Cumplimiento:", "grafico_cumplimiento.png"),
-                ("KPI GAP:", "grafico_gap.png"),
-            ]:
-                story.append(Paragraph(f"{enumerador}. {titulo}", styles['Heading2']))
-                story.append(Image(img, width=200, height=200))
-                story.append(Spacer(1,12))
-                enumerador += 1
+                doc.build(story)
+                pdf_buffer.seek(0)
+                zf.writestr("Reporte_Banca_BBVA.pdf", pdf_buffer.read())
 
 
-            data_tabla = [agrupado3.columns.tolist()] + agrupado3.values.tolist()
+            if formato_csv:
+                csv_content = agrupado.to_csv(index=False)
+                zf.writestr("Reporte_Banca_BBVA.csv", csv_content)
 
 
-            col_widths = [60]*len(agrupado3.columns)
-            if len(col_widths) > 1:
-                col_widths[1] = 110  
-
-            tabla = Table(data_tabla, colWidths=col_widths)
-            tabla.setStyle(TableStyle([
-                ('BACKGROUND',(0,0),(-1,0),colors.darkblue),
-                ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-                ('ALIGN',(0,0),(-1,-1),'CENTER'),
-                ('GRID',(0,0),(-1,-1),0.5,colors.black),
-                ('FONTSIZE', (0,0), (-1,-1), 8),
-                ('LEFTPADDING',(0,0),(-1,-1),2),
-                ('RIGHTPADDING',(0,0),(-1,-1),2),
-                ('TOPPADDING',(0,0),(-1,-1),2),
-                ('BOTTOMPADDING',(0,0),(-1,-1),2),
-            ]))
-            story.append(Paragraph(f"{enumerador} Ranking de oportunidades:", styles['Heading2']))
-            story.append(tabla)
-            story.append(Spacer(1,12))
-            enumerador += 1
-            story.append(Paragraph("*Cifras en millones de pesos"))
+        zip_buffer.seek(0)
 
 
-            doc.build(story)
-
-        if formato_csv:
-            agrupado.to_csv("Reporte_Banca_BBVA.csv", index=False)
-
-        st.success("✅ Proceso finalizado. Los archivos de salida se encuentran en el repositorio de GitHub compartido.")
+        st.download_button(
+            label="📥 Descargar Reportes Seleccionados (ZIP)",
+            data=zip_buffer,
+            file_name="Reportes_Banca_BBVA.zip",
+            mime="application/zip"
+        )
+        st.success("✅ Proceso finalizado. Haz clic en el botón de descarga.")
