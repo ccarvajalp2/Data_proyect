@@ -4,3 +4,4 @@ numpy
 datetime
 reportlab
 matplotlib
+seaborn
