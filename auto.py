@@ -266,13 +266,11 @@ if st.button("🚀 Generar informe"):
         fig.savefig("grafico_gap.png", bbox_inches="tight")
 
         from io import BytesIO
-        import base64
+        import zipfile, base64
+        import matplotlib.pyplot as plt
 
-        from io import BytesIO
-        import zipfile
 
         zip_buffer = BytesIO()
-
         with zipfile.ZipFile(zip_buffer, "w") as zf:
 
 
@@ -286,8 +284,71 @@ if st.button("🚀 Generar informe"):
                 <h1 style="color:#004481;">Reporte de Banca</h1>
                 """
                 html += f"<p>Actualización: {fecha}</p>"
+
+
+                tend["Dia"] = tend["last_change_contract_date"].dt.day.astype(str)
+                buffer = BytesIO()
+                plt.figure(figsize=(8,5))
+                ax = tend.plot(x="Dia", y="Cumplimiento acumulado", kind="bar",
+                            color="#004481", alpha=0.9)
+                plt.plot(tend["Dia"], tend["Meta"], color='#BFC0C0', marker="o")
+                plt.title("Montos otorgados acumulados vs meta")
+                plt.ylabel("Colocaciones")
+                plt.xlabel("Día del mes")
+                plt.tight_layout()
+                plt.savefig(buffer, format="png")
+                buffer.seek(0)
+                img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
+                html += f"<h2>{enumerador}. Tendencia acumulada</h2>"
+                html += f"<img src='data:image/png;base64,{img_base64}' width='600'><br>"
+                enumerador += 1
+                plt.close()
+
+                html += f"<h2>{enumerador}. Resultados agrupados:</h2>"
                 html += agrupado2.to_html(index=False)
+                enumerador += 1
+                html += f"<p>* Cifras en millones de pesos</p>"
+
+
+                buffer = BytesIO()
+                fig, ax = plt.subplots(figsize=(5,5))
+                Cumplimiento = agrupado['Cumplimiento'].mean()
+                ax.pie([Cumplimiento, 1-Cumplimiento], colors=["#004481", "#BFC0C0"], startangle=90,
+                    counterclock=False, wedgeprops=dict(width=0.3))
+                ax.text(0, 0, f"{Cumplimiento*100:.2f}%", ha="center", va="center", fontsize=22,
+                        fontweight="bold", color="#004481")
+                plt.title("Cumplimiento")
+                plt.savefig(buffer, format="png")
+                buffer.seek(0)
+                img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
+                html += f"<h2>{enumerador}. Cumplimiento</h2>"
+                html += f"<img src='data:image/png;base64,{img_base64}' width='300'><br>"
+                enumerador += 1
+                plt.close()
+
+
+                buffer = BytesIO()
+                fig, ax = plt.subplots(figsize=(5,5))
+                GAP = agrupado['GAP'].mean()
+                ax.pie([GAP, 1-GAP], colors=["#004481", "#BFC0C0"], startangle=90,
+                    counterclock=False, wedgeprops=dict(width=0.3))
+                ax.text(0, 0, f"{GAP*100:.2f}%", ha="center", va="center", fontsize=22,
+                        fontweight="bold", color="#004481")
+                plt.title("GAP")
+                plt.savefig(buffer, format="png")
+                buffer.seek(0)
+                img_base64 = base64.b64encode(buffer.read()).decode("utf-8")
+                html += f"<h2>{enumerador}. GAP</h2>"
+                html += f"<img src='data:image/png;base64,{img_base64}' width='300'><br>"
+                enumerador += 1
+                plt.close()
+
+                html += f"<h2>{enumerador}. Ranking de oportunidades:</h2>"
+                html += agrupado3.to_html(index=False)
+                html += f"<p>* Cifras en millones de pesos</p>"
+
                 html += "</body></html>"
+
 
                 zf.writestr("Reporte_Banca_BBVA.html", html)
 
@@ -305,9 +366,38 @@ if st.button("🚀 Generar informe"):
 
                 story.append(Paragraph("Reporte de Banca", styles['Title']))
                 story.append(Spacer(1,12))
-                story.append(Paragraph(f"Actualización: {fecha}", styles['Normal']))
+                story.append(Paragraph(f"Actualización {fecha}", styles['Normal']))
 
+                enumerador = 1
+                story.append(Paragraph(f"{enumerador}. Tendencia acumulada:", styles['Heading2']))
+                story.append(Image("grafico_tendencia.png", width=400, height=250))
+                story.append(Spacer(1,12))
+                enumerador += 1
 
+                story.append(Paragraph("2. Resultados agrupados:", styles['Heading2']))
+                data_tabla = [agrupado2.columns.tolist()] + agrupado2.values.tolist()
+                tabla = Table(data_tabla)
+                tabla.setStyle(TableStyle([
+                    ('BACKGROUND',(0,0),(-1,0),colors.darkblue),
+                    ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+                    ('ALIGN',(0,0),(-1,-1),'CENTER'),
+                    ('GRID',(0,0),(-1,-1),0.5,colors.black),
+                ]))
+                story.append(tabla)
+                story.append(Spacer(1,12))
+
+                story.append(Paragraph("3. Cumplimiento:", styles['Heading2']))
+                story.append(Image("grafico_cumplimiento.png", width=200, height=200))
+                story.append(Spacer(1,12))
+
+                story.append(Paragraph("4. GAP:", styles['Heading2']))
+                story.append(Image("grafico_gap.png", width=200, height=200))
+                story.append(Spacer(1,12))
+
+                story.append(Paragraph("5. Ranking de oportunidades:", styles['Heading2']))
+                data_tabla = [agrupado3.columns.tolist()] + agrupado3.values.tolist()
+                tabla2 = Table(data_tabla)
+                story.append(tabla2)
 
                 doc.build(story)
                 pdf_buffer.seek(0)
@@ -321,11 +411,11 @@ if st.button("🚀 Generar informe"):
 
         zip_buffer.seek(0)
 
-
         st.download_button(
-            label="📥 Descargar Reportes Seleccionados (ZIP)",
+            label="📥 Descargar todos los reportes seleccionados (ZIP)",
             data=zip_buffer,
             file_name="Reportes_Banca_BBVA.zip",
             mime="application/zip"
         )
-        st.success("✅ Proceso finalizado. Haz clic en el botón de descarga.")
+
+        st.success("✅ Reportes generados con éxito")
