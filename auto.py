@@ -372,6 +372,7 @@ if st.button("🚀 Generar informe"):
                 enumerador = 1
                 story.append(Paragraph(f"{enumerador}. Tendencia acumulada:", styles['Heading2']))
                 story.append(Image("grafico_tendencia.png", width=400, height=250))
+                story.append(Paragraph(f"Meta: {meta}"))
                 story.append(Spacer(1,12))
                 enumerador += 1
 
@@ -386,6 +387,7 @@ if st.button("🚀 Generar informe"):
                 ]))
                 story.append(tabla)
                 story.append(Spacer(1,12))
+                story.append(Paragraph("*Cifras en millones de pesos"))
 
                 story.append(Paragraph("3. Cumplimiento:", styles['Heading2']))
                 story.append(Image("grafico_cumplimiento.png", width=200, height=200))
@@ -405,7 +407,8 @@ if st.button("🚀 Generar informe"):
                     ('GRID',(0,0),(-1,-1),0.5,colors.black),
                 ]))
                 story.append(tabla2)
-
+                story.append(Paragraph("*Cifras en millones de pesos"))
+                
                 doc.build(story)
                 pdf_buffer.seek(0)
                 zf.writestr("Reporte_Banca_BBVA.pdf", pdf_buffer.read())
@@ -426,4 +429,5 @@ if st.button("🚀 Generar informe"):
         )
 
         st.success("✅ Reportes generados con éxito")
+
 
